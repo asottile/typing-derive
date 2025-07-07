@@ -33,10 +33,10 @@ def f(x: int, y: str) -> None: ...
 
 TD = typeddict_from('TD', f)
 
-x: TD = {
+a: TD = {
     'x': 1,
     'y': 'hello hello',
 }
 
-f(**x)
+f(**a)
 ```
