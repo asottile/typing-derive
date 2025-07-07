@@ -31,7 +31,7 @@ from typing_derive.impl import typeddict_from_func
 
 def f(x: int, y: str) -> None: ...
 
-TD = typeddict_from('TD', f)
+TD = typeddict_from_func('TD', f)
 
 x: TD = {
     'x': 1,
