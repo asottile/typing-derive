@@ -34,3 +34,11 @@ def typeddict_from_func(
     ret = TypedDict(name, params)  # type: ignore[misc]
     ret.__module__ = _caller()
     return ret  # type: ignore[return-value]
+
+
+def callable_from_func(
+        name: str,
+        func: Callable[..., Any],
+) -> type[Callable[..., Any]]:
+    # TODO: ? what should this do at runtime?
+    return Any  # type: ignore[return-value]

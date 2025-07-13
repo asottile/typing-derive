@@ -6,11 +6,11 @@ from mypy.nodes import GDEF
 from mypy.nodes import PlaceholderNode
 from mypy.nodes import RefExpr
 from mypy.nodes import SymbolTableNode
+from mypy.nodes import TypeAlias
 from mypy.plugin import DynamicClassDefContext
 from mypy.plugin import Plugin
 from mypy.types import CallableType
 from mypy.types import TypedDictType
-from mypy.types import UnboundType
 
 
 def _defer(ctx: DynamicClassDefContext) -> None:
@@ -26,7 +26,7 @@ def _defer(ctx: DynamicClassDefContext) -> None:
         ctx.api.defer()
 
 
-def _typeddict_from_func(ctx: DynamicClassDefContext) -> None:
+def _get_arg1_func(ctx: DynamicClassDefContext) -> CallableType | None:
     if len(ctx.call.args) != 2:
         return ctx.api.fail('expected 2 args', ctx.call)
 
@@ -35,7 +35,7 @@ def _typeddict_from_func(ctx: DynamicClassDefContext) -> None:
         return ctx.api.fail('expected arg 1 to be func', ctx.call)
 
     if func_arg.node is None:
-        return _defer(ctx)
+        return _defer(ctx)  # type: ignore[func-returns-value] # python/mypy#19433  # noqa: E501
 
     if (
         not isinstance(func_arg.node, FuncDef) or
@@ -43,10 +43,23 @@ def _typeddict_from_func(ctx: DynamicClassDefContext) -> None:
     ):
         return ctx.api.fail('expected arg 1 to be func', ctx.call)
 
+    analyzed = ctx.api.anal_type(func_arg.node.type)
+    if analyzed is None:
+        return _defer(ctx)  # type: ignore[func-returns-value] # python/mypy#19433  # noqa: E501
+
+    assert isinstance(analyzed, CallableType), analyzed
+    return analyzed
+
+
+def _typeddict_from_func(ctx: DynamicClassDefContext) -> None:
+    func_tp = _get_arg1_func(ctx)
+    if func_tp is None:
+        return None
+
     items = {}
     required_keys = set()
 
-    c = func_arg.node.type
+    c = func_tp
     for kind, name, tp in zip(c.arg_kinds, c.arg_names, c.arg_types):
         if name is None:
             return ctx.api.fail('func has pos-only argument', ctx.call)
@@ -56,12 +69,6 @@ def _typeddict_from_func(ctx: DynamicClassDefContext) -> None:
         if kind is not ArgKind.ARG_OPT and kind is not ArgKind.ARG_NAMED_OPT:
             required_keys.add(name)
 
-        if isinstance(tp, UnboundType):
-            maybe_tp = ctx.api.anal_type(tp)
-            if maybe_tp is None:
-                return _defer(ctx)
-            else:
-                tp = maybe_tp
         items[name] = tp
 
     fallback = ctx.api.named_type('typing._TypedDict')
@@ -73,12 +80,29 @@ def _typeddict_from_func(ctx: DynamicClassDefContext) -> None:
     ctx.api.add_symbol_table_node(ctx.name, st)
 
 
+def _callable_from_func(ctx: DynamicClassDefContext) -> None:
+    func_tp = _get_arg1_func(ctx)
+    if func_tp is None:
+        return None
+
+    alias = TypeAlias(
+        func_tp,
+        ctx.name,
+        line=ctx.call.line,
+        column=ctx.call.column,
+    )
+    st = SymbolTableNode(GDEF, alias, plugin_generated=True)
+    ctx.api.add_symbol_table_node(ctx.name, st)
+
+
 class _Plugin(Plugin):
     def get_dynamic_class_hook(
         self, fullname: str,
     ) -> Callable[[DynamicClassDefContext], None] | None:
         if fullname == 'typing_derive.impl.typeddict_from_func':
             return _typeddict_from_func
+        elif fullname == 'typing_derive.impl.callable_from_func':
+            return _callable_from_func
         else:
             return None
 

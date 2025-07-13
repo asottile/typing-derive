@@ -40,3 +40,27 @@ x: TD = {
 
 f(**x)
 ```
+
+### `typing_derive.impl.callable_from_func`
+
+create a usable `Callable` type alias from some callable.
+
+useful if you need to pass functions of matching signatures as objects
+
+```python
+def f(x: int, y: str) -> None: ...
+
+F = callable_from_func('F', f)
+
+def g(func: F) -> None:
+    func(x=1, y='two')
+
+def h(x: int, y: str) -> None: ...
+def j(x: str, y: str) -> None: ...
+def k(x1: int, y: str) -> None: ...
+
+g(f)  # ok
+g(h)  # ok
+g(j)  # error: `x` is `str` not `int`
+g(k)  # error: `x1` mismatches `x`
+```
