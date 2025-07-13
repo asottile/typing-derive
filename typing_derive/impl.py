@@ -12,7 +12,7 @@ def _caller() -> str:
 
 def typeddict_from_func(
         name: str,
-        func: Callable[..., None],
+        func: Callable[..., Any],
 ) -> type[dict[Any, Any]]:
     params = {}
     for param in inspect.signature(func).parameters.values():
