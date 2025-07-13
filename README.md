@@ -40,3 +40,39 @@ x: TD = {
 
 f(**x)
 ```
+
+### `typing_derive.impl.typeof`
+
+create a type alias for the type of a function / variable.
+
+one use might be to pass functions of matching signatures as objects
+
+```python
+def f(x: int, y: str) -> None: ...
+
+F = typeof('F', f)
+
+def g(func: F) -> None:
+    func(x=1, y='two')
+
+def h(x: int, y: str) -> None: ...
+def j(x: str, y: str) -> None: ...
+def k(x1: int, y: str) -> None: ...
+
+g(f)  # ok
+g(h)  # ok
+g(j)  # error: `x` is `str` not `int`
+g(k)  # error: `x1` mismatches `x`
+```
+
+it also just works on normal variables too -- though I haven't come up with a
+use for this yet
+
+```python
+x = 5
+
+X = typeof('X', x)  # effectively `type X = int`
+
+y: X = 6  # ok
+z: X = 'no'  # not ok!
+```

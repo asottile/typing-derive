@@ -34,3 +34,7 @@ def typeddict_from_func(
     ret = TypedDict(name, params)  # type: ignore[misc]
     ret.__module__ = _caller()
     return ret  # type: ignore[return-value]
+
+
+def typeof(name: str, o: object) -> type[Any]:
+    return Any  # can't really do better?
