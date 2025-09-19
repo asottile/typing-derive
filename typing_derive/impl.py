@@ -7,7 +7,7 @@ from typing import TypedDict
 
 
 def _caller() -> str:
-    return sys._getframemodulename(2) or '__main__'  # type: ignore[attr-defined]  # noqa: E501
+    return sys._getframemodulename(2) or '__main__'
 
 
 def typeddict_from_func(
