@@ -91,6 +91,7 @@ def _typeof(ctx: DynamicClassDefContext) -> None:
     alias = TypeAlias(
         tp,
         f'{ctx.api.cur_mod_id}.{ctx.name}',
+        ctx.api.cur_mod_id,
         line=ctx.call.line,
         column=ctx.call.column,
     )
